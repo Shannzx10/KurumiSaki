@@ -4,11 +4,10 @@ const warnings = new Map();
 
 const toxicWords = [
     // Indonesian toxic words
-    'anjing', 'anjir', 'ajg', 'anj', 'kontol', 'memek', 'bangsat', 'babi', 
-    'tolol', 'goblok', 'bodoh', 'kampret', 'monyet', 'asu', 'jancok', 
-    'coli', 'colmek', 'ngentot', 'pepek', 'peler', 'tai', 'bego', 'idiot',
-    'setan', 'iblis', 'bajingan', 'kampang', 'geblek', 'eek', 'brengsek',
-    'kimak', 'jembut', 'perek', 'lonte', 'jablay', 'sundal', 'pelacur',
+    'anjing', 'ajg', 'anj', 'kontol', 'memek', 'bangsat', 'babi', 
+    'tolol', 'jancok', 'coli', 'colmek', 'ngentot', 'pepek', 'peler', 'idiot',
+    'bajingan', 'kampang', 'geblek', 'brengsek',
+    'kimak', 'jembut', 'perek', 'lonte', 'jablay', 'sundal',
     
     // English toxic words
     'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'damn', 'crap', 
