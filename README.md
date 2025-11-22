@@ -1,15 +1,17 @@
-# 🤖 KurumiSaki - Advanced WhatsApp Bot
+### KurumiSaki - WhatsApp Bot
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
-![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![KurumiSaki Banner](https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQLIpP8a2eFxRSnGn5_DYlRRYCX1BMaYmzkTTltSpuEfnONrEO9dC5jPUs&s=10)
+
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D22.0.0-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Status](https://img.shields.io/badge/status-production--ready-success.svg)
 
 **Production-ready WhatsApp bot dengan fitur lengkap untuk handle banyak user secara bersamaan**
 
-[Features](#-features) • [Installation](#-installation) • [Configuration](#%EF%B8%8F-configuration) • [Usage](#-usage) • [Commands](#-commands) • [Architecture](#-architecture)
+[Features](#-features) • [Installation](#-installation) • [Configuration](#%EF%B8%8F-configuration) • [Commands](#-commands) • [Architecture](#-architecture)
 
 </div>
 
@@ -25,12 +27,14 @@
 - 🗂️ **Group Cache** - Cache metadata group untuk performa optimal
 - 🔄 **Auto Reconnect** - Otomatis reconnect saat koneksi putus
 
-### 🚀 Advanced Features (v2.0)
+### 🚀 Advanced Features (v1.0)
 - 🧹 **Session Cleaner** - Auto cleanup session files yang tidak penting
 - 🚦 **Rate Limiter** - Advanced rate limiting per user dan group
 - 💾 **Memory Monitor** - Real-time memory monitoring dengan auto GC
 - 📋 **Queue Manager** - Message queue system untuk handle concurrent users
 - 📊 **System Monitoring** - Monitor bot health dan performance
+- 🔄 **Hot Reload** - Reload plugins tanpa restart bot
+- 🔒 **Plugin Validator** - Auto validate plugin sebelum install
 
 ### 🛠️ Developer Features
 - 📝 **Plugin System** - Modular command system dengan hot-reload
@@ -43,7 +47,7 @@
 
 ## 📋 Requirements
 
-- **Node.js** >= 18.0.0
+- **Node.js** >= 22.0.0
 - **npm** atau **yarn**
 - **WhatsApp Account** untuk bot
 - **RAM** minimal 512MB (recommended 1GB+)
@@ -55,7 +59,7 @@
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/kurumisaki-bot.git
+git clone https://github.com/Shannzx10/KurumiSaki.git
 cd kurumisaki-bot
 ```
 
@@ -85,8 +89,8 @@ export default {
 # Normal mode
 npm start
 
-# Dengan manual garbage collection (recommended)
-npm run start:gc
+# Stable mode (recommended) - dengan auto-restart dan error handling
+npm run stable
 ```
 
 ### 5. Pairing Code
@@ -138,99 +142,220 @@ groupCache: {
 }
 ```
 
-### Session Cleaner Config
+---
 
-```javascript
-sessionCleaner: {
-    enabled: true,                   // Enable/disable cleaner
-    autoCleanInterval: 3600000      // Cleanup interval (1 jam)
-}
+## 📖 Commands
+
+#### 1. Update Bot
+```bash
+!update
+```
+Update bot ke versi terbaru dari GitHub. Bot akan otomatis pull perubahan terbaru dan install dependencies jika diperlukan.
+
+**Features:**
+- ✅ Auto check updates
+- ✅ Show commit history
+- ✅ Auto install dependencies
+- ✅ Stash local changes
+
+---
+
+#### 2. Add Plugin
+```bash
+!addplugin <category>
+```
+Tambah plugin baru dengan reply/send file `.js`. Bot akan otomatis validasi isi file untuk memastikan itu adalah plugin yang valid.
+
+**Features:**
+- ✅ Auto detect plugin structure
+- ✅ Validate before install
+- ✅ Prevent bot corruption
+- ✅ Support categories
+
+**Example:**
+```bash
+# Reply file plugin.js dengan:
+!addplugin general
+
+# Atau kirim file dengan caption:
+!addplugin tools
 ```
 
-### Rate Limiter Config
+> ⚠️ **Security**: Bot akan menolak file yang bukan plugin valid untuk mencegah kerusakan!
 
-```javascript
-rateLimiter: {
-    enabled: true,
-    userLimits: {
-        maxPerMinute: 10,           // Max request per minute per user
-        maxPerHour: 100             // Max request per hour per user
-    },
-    groupLimits: {
-        maxPerMinute: 30            // Max request per minute per group
-    }
-}
+---
+
+#### 3. Delete Plugin
+```bash
+!delplugin <plugin_name>
+```
+Hapus plugin dari bot.
+
+---
+
+#### 4. Reload Plugin
+```bash
+!reload <plugin_name>
+```
+Reload plugin tanpa restart bot (hot-reload).
+
+---
+
+#### 5. Cleanup Manager
+```bash
+!cleanup [option]
 ```
 
-### Memory Monitor Config
-
-```javascript
-memoryMonitor: {
-    enabled: true,
-    threshold: 500,                  // MB - trigger GC saat melebihi
-    checkInterval: 60000,           // Check setiap 1 menit
-    gcOnHigh: true                  // Auto GC saat high memory
-}
-```
-
-### Queue Manager Config
-
-```javascript
-queueManager: {
-    enabled: true,
-    maxConcurrent: 5,               // Max concurrent tasks
-    maxQueueSize: 100,              // Max queue size per chat
-    timeout: 30000                  // Task timeout (30 detik)
-}
+**Example:**
+```bash
+!cleanup --session    # Clean session files
+!cleanup --memory     # Trigger GC
+!cleanup --all        # Clean everything
 ```
 
 ---
 
-## 📖 Usage
+#### 6. Message Store Manager
+```bash
+!store [option]
+```
 
-### Creating Commands
+**Example:**
+```bash
+!store --status              # Show statistics
+!store --search hello        # Search messages
+!store --get ABC123          # Get specific message
+```
 
-Buat file di folder `plugins/`:
+---
+
+#### 7. Cache Manager
+```bash
+!cache [option]
+```
+
+**Example:**
+```bash
+!cache --status      # Show cache stats
+!cache --clear       # Clear all cache
+!cache --cleanup     # Manual cleanup
+```
+
+---
+
+#### 8. System Monitor
+```bash
+!system [option]
+```
+Monitor bot system status dan performance.
+
+**Options:**
+- `--memory` - Show memory stats
+- `--rate` - Show rate limiter stats
+- `--queue` - Show queue stats
+- `--session` - Show session info
+
+**Example:**
+```bash
+!system              # Show all stats
+!system --memory     # Show memory only
+```
+
+---
+
+#### 9. Restart Bot
+```bash
+!restart
+```
+Restart bot untuk apply perubahan atau fix issues.
+
+---
+
+#### 10. Set Mode
+```bash
+!setmode <mode>
+```
+Ubah mode bot.
+
+**Modes:**
+- `public` - Semua user bisa pakai
+- `private` - Hanya user terdaftar
+- `self` - Hanya owner
+
+---
+
+## 🏗️ Architecture
+
+### Project Structure
+
+```
+kurumisaki-bot/
+├── index.js                 # Entry point
+├── config.js               # Configuration
+├── core/                   # Core libraries
+│   ├── CommandHandler.js   # Command handler
+│   ├── Connection.js       # WhatsApp connection
+│   ├── MessageStore.js     # Message storage
+│   ├── ModuleLoader.js     # Plugin loader
+│   ├── Serializer.js       # Message serializer
+│   ├── Logger.js           # Logger utility
+│   ├── GroupCache.js       # Group cache manager
+│   ├── SessionCleaner.js   # Session cleaner
+│   ├── RateLimiter.js      # Rate limiter
+│   ├── MemoryMonitor.js    # Memory monitor
+│   └── QueueManager.js     # Queue manager
+├── commands/               # Command plugins
+│   ├── general/           # General commands
+│   ├── group/             # Group commands
+│   ├── owner/             # Owner commands
+│   ├── system/            # System commands
+│   └── _antilink.js.         # Middleware Logic
+├── utility/               # Utility functions
+│   └── Font.js           # Font utilities
+├── session/               # Session data (auto-generated)
+└── package.json
+```
+
+---
+
+## 📝 Creating Plugins
+
+### Basic Plugin Structure
 
 ```javascript
-// plugins/ping.js
+//plugins/general/pluginname.js
+import { toSmallCaps } from "../../utility/Font.js";
+
 export default {
-    name: "ping",
-    aliases: ["p"],
-    desc: "Check bot latency",
-    usage: "ping",
+    name: "pluginname",
+    aliases: ["alias1", "alias2"],
+    desc: "Plugin description",
+    usage: "pluginname [args]",
+    category: "general",
     cooldown: 3,
     
-    async execute({ reply, m }) {
-        const start = Date.now();
-        await reply("Pong! 🏓");
-        const latency = Date.now() - start;
-        await reply(`Latency: ${latency}ms`);
+    async execute({ m, args, sock, reply }) {
+        // Your code here
+        await reply("Hello World!");
     }
 };
 ```
 
-### Command Options
+### Plugin Options
 
 ```javascript
 {
-    name: "commandname",        // Command name (required)
-    aliases: ["alias1"],        // Command aliases
-    desc: "Description",        // Command description
-    usage: "command [args]",    // Usage example
-    category: "general",        // Command category
-    cooldown: 3,               // Cooldown in seconds
-    ownerOnly: false,          // Owner only command
-    adminOnly: false,          // Admin only command
-    groupOnly: false,          // Group only command
-    privateOnly: false,        // Private chat only
-    botAdminRequired: false,   // Bot must be admin
-    waitMessage: "Wait...",    // Message saat processing
-    mediaType: "image",        // Required media type
-    
-    async execute(context) {
-        // Command logic here
-    }
+    name: "commandname",        // Required
+    aliases: ["alias"],         // Optional
+    desc: "Description",        // Optional
+    usage: "command [args]",    // Optional
+    category: "general",        // Optional
+    cooldown: 3,               // Seconds
+    isOwner: false,            // Owner only
+    isAdmin: false,            // Admin only
+    isGroup: false,            // Group only
+    isPrivate: false,          // Private only
+    isBotAdmin: false,         // Bot must be admin
 }
 ```
 
@@ -238,25 +363,17 @@ export default {
 
 ```javascript
 {
-    m,                  // Message object
-    args,               // Command arguments (array)
-    sock,               // Socket connection
-    config,             // Bot config
-    handler,            // Command handler
-    store,              // Message store
-    groupCache,         // Group cache manager
-    sessionCleaner,     // Session cleaner
-    rateLimiter,        // Rate limiter
-    memoryMonitor,      // Memory monitor
-    queueManager,       // Queue manager
-    reply,              // Quick reply function
-    react,              // Quick react function
-    isOwner,            // Is sender owner
-    isGroup,            // Is group chat
-    isAdmin,            // Is sender admin
-    isBotAdmin,         // Is bot admin
-    quoted,             // Quoted message
-    mentions            // Mentioned users
+    m,              // Message object
+    args,           // Arguments array
+    sock,           // Socket connection
+    config,         // Bot config
+    handler,        // Command handler
+    store,          // Message store
+    groupCache,     // Group cache
+    reply,          // Quick reply
+    react,          // Quick react
+    isOwner,        // Is owner
+    isGroup,        // Is group chat
 }
 ```
 
@@ -274,288 +391,46 @@ export default async function(ctx) {
 
 ---
 
-## 🎮 Commands
+## 🔧 Production Deployment
 
-### Owner Commands
-
-| Command | Aliases | Description |
-|---------|---------|-------------|
-| `system` | `sys`, `status` | Monitor bot system status |
-| `cleanup` | `clean` | Perform system cleanup |
-| `cache` | `gc` | Manage group cache |
-| `store` | `ms`, `msgstore` | Manage message store |
-
-### System Command
+### Using PM2 (Recommended)
 
 ```bash
-# Show all stats
-!system
-
-# Show memory stats
-!system --memory
-
-# Show rate limiter stats
-!system --rate
-
-# Show queue stats
-!system --queue
-
-# Show session info
-!system --session
-```
-
-### Cleanup Command
-
-```bash
-# Clean session files
-!cleanup --session
-
-# Clear group cache
-!cleanup --cache
-
-# Clear rate limits
-!cleanup --rate
-
-# Trigger garbage collection
-!cleanup --memory
-
-# Clean everything
-!cleanup --all
-```
-
-### Cache Command
-
-```bash
-# Show cache status
-!cache --status
-
-# Clear all cache
-!cache --clear
-
-# Enable cache (temporary)
-!cache --on
-
-# Disable cache (temporary)
-!cache --off
-
-# Manual cleanup
-!cache --cleanup
-```
-
-### Store Command
-
-```bash
-# Show store status
-!store --status
-
-# Force save to disk
-!store --save
-
-# Clear all messages
-!store --clear
-
-# Search messages
-!store --search <text>
-
-# Get message by ID
-!store --get <message-id>
-```
-
-### Debug Commands (Owner Only)
-
-```bash
-# Evaluate JavaScript
-> console.log("Hello")
-
-# Evaluate with return
--> 2 + 2
-
-# Execute shell command
-$ ls -la
-```
-
----
-
-## 🏗️ Architecture
-
-### Project Structure
-
-```
-kurumisaki-bot/
-├── index.js                 # Entry point
-├── config.js               # Configuration
-├── lib/                    # Core libraries
-│   ├── CommandHandler.js   # Command handler
-│   ├── Connection.js       # WhatsApp connection
-│   ├── MessageStore.js     # Message storage
-│   ├── ModuleLoader.js     # Plugin loader
-│   ├── Serializer.js       # Message serializer
-│   ├── Logger.js           # Logger utility
-│   ├── GroupCache.js       # Group cache manager
-│   ├── SessionCleaner.js   # Session cleaner
-│   ├── RateLimiter.js      # Rate limiter
-│   ├── MemoryMonitor.js    # Memory monitor
-│   └── QueueManager.js     # Queue manager
-├── plugins/                # Command plugins
-│   ├── system.js           # System monitor
-│   ├── cleanup.js          # Cleanup manager
-│   ├── cache.js            # Cache manager
-│   └── store.js            # Store manager
-├── session/                # Session data (auto-generated)
-│   ├── creds.json          # Credentials
-│   └── messages.json       # Message history
-└── package.json
-```
-
-### Core Components
-
-#### 1. CommandHandler
-- Register dan manage commands
-- Handle cooldowns dan spam protection
-- Execute commands dengan middleware support
-
-#### 2. Connection
-- Manage WhatsApp connection
-- Handle messages dan events
-- Auto reconnect mechanism
-
-#### 3. MessageStore
-- Store message history
-- Auto-save dengan interval
-- Search dan retrieve messages
-
-#### 4. GroupCache
-- Cache group metadata
-- Auto cleanup expired cache
-- Reduce API calls
-
-#### 5. SessionCleaner
-- Auto cleanup session files
-- Keep only important files
-- Save disk space
-
-#### 6. RateLimiter
-- Rate limiting per user
-- Rate limiting per group
-- Auto-ban spam users
-
-#### 7. MemoryMonitor
-- Monitor memory usage
-- Auto garbage collection
-- Track memory statistics
-
-#### 8. QueueManager
-- Queue messages per chat
-- Handle concurrent users
-- Timeout protection
-
----
-
-## 🔧 Optimization Tips
-
-### 1. Memory Optimization
-
-```bash
-# Run dengan manual GC
-node --expose-gc index.js
-
-# Limit memory usage
-node --max-old-space-size=512 index.js
-```
-
-### 2. Production Deployment
-
-```bash
-# Gunakan PM2 untuk process management
+# Install PM2
 npm install -g pm2
 
 # Start bot
-pm2 start index.js --name kurumisaki --node-args="--expose-gc"
+pm2 start index.js --name kurumisaki
 
-# Auto restart on file changes
+# With auto-restart
 pm2 start index.js --name kurumisaki --watch
 
 # View logs
 pm2 logs kurumisaki
 
-# Restart bot
+# Restart
 pm2 restart kurumisaki
-```
 
-### 3. Config Optimization
+# Stop
+pm2 stop kurumisaki
 
-Untuk server dengan RAM terbatas:
-
-```javascript
-{
-    maxMessages: 1000,          // Reduce dari 2000
-    groupCache: {
-        ttl: 180000,            // Reduce dari 300000
-    },
-    memoryMonitor: {
-        threshold: 300,         // Reduce dari 500
-    },
-    queueManager: {
-        maxQueueSize: 50,       // Reduce dari 100
-    }
-}
+# Auto start on boot
+pm2 startup
+pm2 save
 ```
 
 ---
 
-## 🐛 Troubleshooting
-
-### Bot tidak merespon
-
-1. Check console untuk error
-2. Pastikan prefix sudah benar
-3. Check mode bot (public/private/self)
-4. Restart bot
-
-### High memory usage
-
-```bash
-# Manual cleanup
-!cleanup --memory
-
-# Check memory stats
-!system --memory
-
-# Restart dengan GC
-node --expose-gc index.js
-```
-
-### Session error
-
-```bash
-# Clean session
-!cleanup --session
-
-# Atau hapus folder session dan login ulang
-rm -rf session/
-```
-
-### Queue timeout
-
-```bash
-# Check queue stats
-!system --queue
-
-# Clear queue untuk chat tertentu
-> queueManager.clear("628xxx@s.whatsapp.net")
-```
-
----
-
-## 🔐 Security
+## 🛡️ Security
 
 ### Best Practices
 
-1. **Jangan share `creds.json`** - File ini berisi credentials bot
-2. **Gunakan `.gitignore`** - Exclude `session/` folder
-3. **Owner verification** - Selalu verify owner sebelum execute sensitive commands
-4. **Rate limiting** - Enable rate limiter untuk prevent abuse
-5. **Regular cleanup** - Cleanup session dan cache secara berkala
+1. ✅ **Jangan share `creds.json`** - Contains bot credentials
+2. ✅ **Use `.gitignore`** - Exclude sensitive files
+3. ✅ **Owner verification** - Always verify owner
+4. ✅ **Rate limiting** - Prevent spam abuse
+5. ✅ **Plugin validation** - Validate before install
+6. ✅ **Regular cleanup** - Clean session regularly
 
 ### .gitignore
 
@@ -569,14 +444,31 @@ node_modules/
 
 # Logs
 *.log
-npm-debug.log*
-
-# OS
-.DS_Store
-Thumbs.db
 
 # Environment
 .env
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Bot tidak merespon
+1. Check console untuk error
+2. Pastikan prefix sudah benar
+3. Check mode bot (public/private/self)
+4. Restart bot dengan `!restart`
+
+### High memory usage
+```bash
+!cleanup --memory
+!system --memory
+```
+
+### Session error
+```bash
+!cleanup --session
+# Atau hapus folder session dan login ulang
 ```
 
 ---
@@ -585,26 +477,16 @@ Thumbs.db
 
 ### Benchmarks
 
-Tested dengan:
-- **CPU**: 2 vCPU
-- **RAM**: 1GB
-- **Network**: 10Mbps
+**Test Environment:**
+- CPU: 2 vCPU
+- RAM: 1GB
+- Network: 10Mbps
 
-Results:
+**Results:**
 - ✅ Handle 100+ concurrent users
 - ✅ Response time < 500ms
 - ✅ Memory usage: 200-400MB
 - ✅ Uptime: 99.9%
-
-### Load Testing
-
-```bash
-# Test dengan 100 messages
-for i in {1..100}; do
-    curl -X POST "localhost:3000/send" \
-    -d "message=!ping"
-done
-```
 
 ---
 
@@ -613,14 +495,14 @@ done
 Contributions are welcome! Please:
 
 1. Fork repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
+2. Create feature branch
+3. Commit changes
+4. Push to branch
 5. Open Pull Request
 
 ---
 
-## 📝 License
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
@@ -629,13 +511,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Shannz**
-- GitHub: [@yourusername](https://github.com/yourusername)
+- GitHub: [@yourusername](https://github.com/Shannzx10)
 - WhatsApp: [+62 821-4277-0930](https://wa.me/6282142770930)
 
 ---
 
 ## 🙏 Acknowledgments
 
+- [IKYYYOFC](https://github.com/ikyyyofc) - Debugging Helper
 - [Baileys](https://github.com/WhiskeySockets/Baileys) - WhatsApp Web API
 - [Chalk](https://github.com/chalk/chalk) - Terminal styling
 - [Pino](https://github.com/pinojs/pino) - Logging
@@ -646,22 +529,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Jika ada pertanyaan atau butuh bantuan:
 
-- 📧 Email: your.email@example.com
-- 💬 WhatsApp: [+62 821-4277-0930](https://wa.me/6282142770930)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/kurumisaki-bot/issues)
+- 💬 WhatsApp: [+62 821-4277-0930](https://wa.me/6283151548026)
+- 🐛 Issues: [GitHub Issues](https://github.com/Shannzx10/KurumiSaki/issues)
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Web Dashboard
-- [ ] Database integration (MongoDB/PostgreSQL)
-- [ ] Multi-device support
-- [ ] AI integration (OpenAI, Google AI)
-- [ ] Payment gateway integration
-- [ ] Webhook support
-- [ ] REST API
-- [ ] Docker support
+- [✅] Web Dashboard
+- [✅] Database integration
+- [✅] Multi-device support
+- [✅] AI integration
+- [✅] Payment gateway
+- [✅] REST API
+- [✅] Docker support
 
 ---
 

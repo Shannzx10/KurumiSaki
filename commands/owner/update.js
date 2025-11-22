@@ -10,7 +10,7 @@ export default {
     desc: "Update bot to latest version from GitHub",
     usage: "update",
     category: "owner",
-    isOwner: true,
+    ownerOnly: true,
     
     async execute({ m, sock, config }) {
         const loadingMsg = await m.reply(`⏳ ${toSmallCaps('checking for updates')}...`);
