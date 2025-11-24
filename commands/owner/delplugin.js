@@ -40,7 +40,7 @@ export default {
 
             await m.react("🔄");
 
-            const pluginsDir = path.join(__dirname, "..", "..", "plugins");
+            const pluginsDir = path.join(__dirname, "..", "..", "commands");
             const files = scanFolder(pluginsDir, pluginsDir);
             let deleted = false;
 

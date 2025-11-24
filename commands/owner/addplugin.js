@@ -81,7 +81,7 @@ export default {
             const pluginName = nameMatch[1];
             const pluginFileName = fileName;
 
-            const pluginsDir = path.join(__dirname, "..", "..", "plugins");
+            const pluginsDir = path.join(__dirname, "..", "..", "commands");
             const categoryDir = path.join(pluginsDir, category);
 
             if (!fs.existsSync(categoryDir)) {

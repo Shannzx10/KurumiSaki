@@ -46,7 +46,7 @@ function containsToxicWord(text) {
     const lowerText = text.toLowerCase();
     
     return toxicWords.some(word => {
-        const regex = new RegExp(`\\b${word}\\b|${word}`, 'i');
+        const regex = new RegExp(`\\b${word}\\b`, 'i');
         return regex.test(lowerText);
     });
 }

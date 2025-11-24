@@ -39,7 +39,7 @@ export default {
         
         let msg = `╭━━━ ${toSmallCaps('bot info')} ━━━\n`;
         msg += `│ 🤖 ${toSmallCaps('botname')}: ${config.botName || toSmallCaps('whatsapp bot')}\n`;
-        msg += `│ 👤 ${toSmallCaps('owner')}: ${config.ownerName || toSmallCaps('owner')}\n`;
+        msg += `│ 👤 ${toSmallCaps('owner')}: ${config.owner || toSmallCaps('owner')}\n`;
         msg += `│ 📦 ${toSmallCaps('total cmd')}: ${totalCmds}\n`;
         msg += `│ 🔖 ${toSmallCaps('prefix')}: ${config.prefix.join(", ")}\n`;
         msg += `╰━━━━━━━━━━━━━━━━\n`;

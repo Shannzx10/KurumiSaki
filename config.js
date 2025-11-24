@@ -1,11 +1,12 @@
 export default {
     botName: "KurumiSaki",
-    version: "1.0.0",
+    version: "1.0.1",
     owner: "Shannz",
     sessionDir: "session",
     owners: ["6282142770930"],
     prefix: ["!", ".", "/"],
     caseSensitive: false,
+    geminiApikey: "GEMINI_APIKEY",
     mode: "public",
     antiSpam: {
         enabled: true,

@@ -17,7 +17,7 @@ export default {
     
     async execute({ args, reply, handler, m }) {
         try {
-            const pluginsDir = path.join(__dirname, "..", "..", "plugins");
+            const pluginsDir = path.join(__dirname, "..", "..", "commands");
 
             if (args.length === 0) {
                 await m.react("🔄");
@@ -30,13 +30,18 @@ export default {
                 handler.middlewares.clear();
 
                 const files = scanFolder(pluginsDir, pluginsDir);
-                let loaded = 0;
+                let loadedCmds = 0;
+                let loadedMw = 0;
                 let failed = 0;
 
                 for (const file of files) {
                     try {
-                        await loadFile(file, pluginsDir, handler);
-                        loaded++;
+                        const type = await loadFile(file, pluginsDir, handler);
+                        if (type === 'command') {
+                            loadedCmds++;
+                        } else if (type === 'middleware') {
+                            loadedMw++;
+                        }
                     } catch (err) {
                         console.error(`Failed to load ${file}:`, err.message);
                         failed++;
@@ -49,7 +54,8 @@ export default {
 
                 let msg = `╭━━━ ${toSmallCaps('reload complete')} ━━━\n`;
                 msg += `│\n`;
-                msg += `│ ✅ ${toSmallCaps('loaded')}: ${loaded} ${toSmallCaps('plugins')}\n`;
+                msg += `│ ✅ ${toSmallCaps('loaded cmd')}: ${loadedCmds} ${toSmallCaps('plugins')}\n`;
+                msg += `│ ⚙️ ${toSmallCaps('loaded mw')}: ${loadedMw} ${toSmallCaps('middlewares')}\n`;
                 msg += `│ ❌ ${toSmallCaps('failed')}: ${failed} ${toSmallCaps('plugins')}\n`;
                 msg += `│ 🔄 ${toSmallCaps('previous')}: ${oldSize} ${toSmallCaps('commands')}\n`;
                 msg += `│ ⚡ ${toSmallCaps('current')}: ${handler.commands.size} ${toSmallCaps('commands')}\n`;
@@ -77,7 +83,6 @@ export default {
                 if (fileName === pluginName || fileName === `_${pluginName}`) {
                     try {
                         handler.commands.delete(pluginName);
-                        
                         if (cmd.aliases) {
                             cmd.aliases.forEach(alias => {
                                 handler.aliases.delete(alias.toLowerCase());
@@ -148,7 +153,7 @@ async function loadFile(file, pluginsDir, handler) {
     const module = await import(fileUrl);
     const plugin = module.default;
 
-    if (!plugin) return;
+    if (!plugin) return null;
 
     const fileName = path.basename(file);
     const folder = path.dirname(file);
@@ -156,11 +161,15 @@ async function loadFile(file, pluginsDir, handler) {
     if (fileName.startsWith("_")) {
         const mwName = path.basename(fileName, ".js").substring(1);
         handler.use(mwName, plugin);
+        return 'middleware';
     }
     else if (typeof plugin === "object" && plugin.execute) {
         handler.register({
             ...plugin,
             category: folder === "." ? "general" : folder
         });
+        return 'command';
     }
+    
+    return null;
 }

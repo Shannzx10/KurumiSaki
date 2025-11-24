@@ -336,7 +336,7 @@ export class Connection {
 
         const cooldown = this.handler.checkCooldown(m.sender, cmdName, this.config);
         if (!cooldown.ok) {
-            return await m.reply(`⏳ Wait ${cooldown.timeLeft}s`);
+            return await m.reply(`⏳ Cooldown, Please Wait ${cooldown.timeLeft}s`);
         }
 
         const context = {

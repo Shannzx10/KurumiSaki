@@ -17,6 +17,35 @@
 
 ---
 
+## 📝 Changelog
+
+### [1.0.1] - 2024-11-24
+
+#### 🚀 Core Features
+- Penyesuaian di `Connection.js`, `MessageHandler.js`
+- Add `geminiApikey` di config.js
+- Add `Uploader.js` utility
+- Update baileys to `rc.9`
+- Add module `@google/genai`, `yt-search`, `mime-types`, dan `wa-sticker-formatter`
+
+#### 🔧 Commands Update
+- `addplugin` - Fix bug folder
+- `delplugin` - Fix bug folder
+- `reload` - Fix bug folder
+- `menu` - Fix bug owner named
+
+#### 🛠️ Add Commands
+- `kurumi` - Ai support script
+- `cekip` - Cek IP bot
+- `ytdl` - Youtube downloader mp3 & mp4
+- `yts` - Youtube search
+- `toimg` - Convert sticker to image/video
+- `tourl` - Upload all media file to cloud
+- `sticker` - Convert image/video to sticker 
+- `swm` - Rename package & author sticker 
+
+---
+
 ## ✨ Features
 
 ### 🔥 Core Features
@@ -27,7 +56,7 @@
 - 🗂️ **Group Cache** - Cache metadata group untuk performa optimal
 - 🔄 **Auto Reconnect** - Otomatis reconnect saat koneksi putus
 
-### 🚀 Advanced Features (v1.0)
+### 🚀 Advanced Features
 - 🧹 **Session Cleaner** - Auto cleanup session files yang tidak penting
 - 🚦 **Rate Limiter** - Advanced rate limiting per user dan group
 - 💾 **Memory Monitor** - Real-time memory monitoring dengan auto GC
