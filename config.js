@@ -1,22 +1,30 @@
 export default {
     botName: "KurumiSaki",
-    version: "1.0.1",
+    version: "1.0.2",
     owner: "Shannz",
     sessionDir: "session",
-    owners: ["6282142770930"],
+    owners: ["6288991677437"],
     prefix: ["!", ".", "/"],
     caseSensitive: false,
     geminiApikey: "GEMINI_APIKEY",
     mode: "public",
+    
+    middlewares: {
+        antilink: true,
+        antitoxic: false
+    },
+    
     antiSpam: {
         enabled: true,
         maxPerMinute: 10,
         banTime: 300000
     },
+    
     cooldown: 3000,
     saveMessages: true,
     maxMessages: 2000,
     autoSaveInterval: 25,
+    
     groupCache: {
         enabled: true,
         ttl: 300000,

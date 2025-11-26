@@ -19,9 +19,9 @@ export class Logger {
         };
         
         const emoji = typeEmoji[m.type] || '📨';
-        const sender = m.sender.split("@")[0];
+        const sender = m.sender.split("@")[0] || 'Unknown';
         const chat = m.chat.split("@")[0];
-        
+
         const preview = m.text 
             ? (m.text.length > 60 ? m.text.substring(0, 60) + '...' : m.text)
             : `[${m.type}]`;

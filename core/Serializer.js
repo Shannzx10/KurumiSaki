@@ -2,23 +2,60 @@ import {
     jidNormalizedUser, 
     downloadContentFromMessage 
 } from "@whiskeysockets/baileys";
+import config from '../config.js';
 
 export async function serializeMessage(m, sock, connection) {
     if (!m.message) return m;
 
-    m.isGroup = m.key.remoteJid?.endsWith("@g.us");
-    m.chat = m.key.remoteJid;
+    m.isGroup = m.key.remoteJid?.endsWith("@g.us");    
+    m.chat = m.isGroup ? m.key.remoteJid : (m.key.remoteJidAlt || m.key.remoteJid);
     m.fromMe = m.key.fromMe;
     
     m.sender = jidNormalizedUser(
-        m.fromMe ? sock.user.id : m.key.participant || m.chat
+        m.fromMe ? sock.user.id : m.key.participantAlt || m.key.remoteJidAlt
     );
+    m.isOwner = config.owners.some(o => m.sender.includes(o));
 
     const type = Object.keys(m.message)[0];
     m.type = type;
     m.msg = m.message[type];
     
-    m.text = 
+    let extractedText = "";
+
+    if (m.message.templateButtonReplyMessage) {
+        const buttonReply = m.message.templateButtonReplyMessage;
+        extractedText = buttonReply.selectedId || buttonReply.selectedDisplayText || "";
+        console.log("✅ Button reply detected:", extractedText);
+    }
+
+    else if (m.message.interactiveResponseMessage) {
+        try {
+            const interactiveResponse = m.message.interactiveResponseMessage;
+            const nativeFlow = interactiveResponse.nativeFlowResponseMessage;
+            
+            if (nativeFlow && nativeFlow.paramsJson) {
+                const params = JSON.parse(nativeFlow.paramsJson);
+                extractedText = params.id || "";
+                console.log("✅ Interactive button reply:", extractedText);
+            }
+        } catch (e) {
+            console.error("Error parsing interactive response:", e);
+        }
+    }
+
+    else if (m.message.buttonsResponseMessage) {
+        const btnResp = m.message.buttonsResponseMessage;
+        extractedText = btnResp.selectedButtonId || btnResp.selectedDisplayText || "";
+        console.log("✅ Buttons response:", extractedText);
+    }
+
+    else if (m.message.listResponseMessage) {
+        const listResp = m.message.listResponseMessage;
+        extractedText = listResp.singleSelectReply?.selectedRowId || listResp.title || "";
+        console.log("✅ List response:", extractedText);
+    }
+
+    m.text = extractedText || 
         m.message.conversation ||
         m.msg?.text ||
         m.msg?.caption ||

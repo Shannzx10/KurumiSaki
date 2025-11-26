@@ -1,6 +1,9 @@
 import ytSearch from 'yt-search';
 import axios from 'axios';
 import { toSmallCaps } from '../../utility/Font.js';
+import { sendButtons } from '../../utility/Button.js';
+
+const videoCache = new Map();
 
 async function ytdlp(type, videoUrl) {
     const command = type === "audio" ? `-x --audio-format mp3 ${videoUrl}` : `-f 136+140 ${videoUrl}`;
@@ -44,62 +47,124 @@ function getVideoId(url) {
     }
 }
 
+async function showVideoInfo(m, sock, video, url) {
+    const chatId = m.chat;
+
+    videoCache.set(chatId, { video, url });
+
+    let caption = `╭━━━ ${toSmallCaps('youtube info')} ━━━\n`;
+    caption += `│ 📌 ${toSmallCaps(`*${video.title}*`)}\n`;
+    caption += `│ 👤 ${toSmallCaps(`Channel: ${video.author.name}`)}\n`;
+    caption += `│ 🕒 ${toSmallCaps(`Duration: ${video.timestamp}`)}\n`;
+    caption += `│ 👁️ ${toSmallCaps(`Views: ${video.views.toLocaleString()}`)}\n`;
+    caption += `│ 📅 ${toSmallCaps(`Uploaded: ${video.ago}`)}\n`;
+    caption += `│ 🔗 URL: ${video.url}\n`;
+    caption += `╰━━━━━━━━━━━━━━━━\n\n`;
+    caption += toSmallCaps('pilih format download:');
+
+    const buttons = [
+        { id: '.ytdl _mp4', text: 'Video (MP4)' },
+        { id: '.ytdl _mp3', text: 'Audio (MP3)' }
+    ];
+
+    const payload = {
+        image: { url: video.thumbnail },
+        caption: caption.trim(),
+        footer: toSmallCaps('KurumiSaki Project'),
+        buttons: buttons
+    };
+
+    await sendButtons(sock, m.chat, payload, { quoted: m });
+}
+
+async function downloadVideo(m, sock, type) {
+    const chatId = m.chat;
+    const cached = videoCache.get(chatId);
+
+    if (!cached) {
+        return m.reply(toSmallCaps('❌ Sesi download udah expired, kirim link lagi ya bro.'));
+    }
+
+    const { video, url } = cached;
+
+    try {
+        await m.react('⏳');
+        await m.reply(toSmallCaps('⏳ Sabar bro, lagi download...'));
+
+        const result = await ytdlp(type === 'mp3' ? 'audio' : 'video', url);
+        const downloadUrl = result.dl;
+
+        let caption = `╭━━━ ${toSmallCaps('youtube download')} ━━━\n`;
+        caption += `│ 📌 ${toSmallCaps(`*${video.title}*`)}\n`;
+        caption += `│ 👤 ${toSmallCaps(`${video.author.name}`)}\n`;
+        caption += `│ 🕒 ${toSmallCaps(`${video.timestamp}`)}\n`;
+        caption += `╰━━━━━━━━━━━━━━━━\n`;
+
+        if (type === 'mp4') {
+            await sock.sendMessage(m.chat, {
+                video: { url: downloadUrl },
+                caption: caption.trim(),
+                mimetype: 'video/mp4'
+            }, { quoted: m });
+        } else {
+            await sock.sendMessage(m.chat, {
+                audio: { url: downloadUrl },
+                caption: caption.trim(),
+                mimetype: 'audio/mpeg',
+                fileName: `${video.title}.mp3`
+            }, { quoted: m });
+        }
+
+        await m.react('✅');
+        videoCache.delete(chatId);
+
+    } catch (err) {
+        console.error("YTDL error:", err);
+        await m.react('❌');
+        await m.reply(toSmallCaps(`❌ Gagal download, bro. Mungkin linknya mati atau server scraper lagi down.\nError: ${err.message}`));
+    }
+}
+
 export default {
     name: 'ytdl',
-    aliases: ['ytmp3', 'ytmp4', 'youtubedl'],
-    desc: 'Download video/audio dari YouTube',
-    usage: 'ytdl <mp3/mp4> <youtube_url>',
+    aliases: ['ytmp3', 'ytmp4', 'youtubedl', 'yt'],
+    desc: 'Download video/audio dari YouTube dengan button',
+    usage: 'ytdl <youtube_url>',
     category: 'downloader',
-    waitMessage: '⏳ Sabar bro, lagi proses...',
     
     async execute({ m, args, sock }) {
-        if (args.length < 2) {
-            return m.reply(`❌ Format salah, bro.\nContoh: .ytdl mp4 https://youtube.com/watch?v=...`);
+        if (args[0] === '_mp4' || args[0] === '_mp3') {
+            const format = args[0].replace('_', '');
+            return await downloadVideo(m, sock, format);
+        }
+
+        if (args.length < 1) {
+            return m.reply(`${toSmallCaps('❌ Format salah, bro.\nContoh: .ytdl')} https://youtube.com/watch?v=...`);
         }
         
-        const type = args[0].toLowerCase();
-        const url = args[1];
-
-        if (type !== 'mp3' && type !== 'mp4') {
-            return m.reply(`❌ Pilih tipe dulu, mp3 atau mp4.`);
-        }
-
+        const url = args[0];
         const videoId = getVideoId(url);
+        
         if (!videoId) {
-            return m.reply('❌ Link YouTube-nya ga valid, cuy.');
+            return m.reply(toSmallCaps('❌ Link YouTube-nya ga valid, cuy.'));
         }
 
         try {
+            await m.react('🔍');
+            
             const video = await ytSearch({ videoId });
             if (!video) {
-                return m.reply('❌ Video ga ketemu, linknya bener ga?');
+                await m.react('❌');
+                return m.reply(toSmallCaps('❌ Video ga ketemu, linknya bener ga?'));
             }
 
-            const result = await ytdlp(type === 'mp3' ? '--audio' : '--video', url);
-            const downloadUrl = result.dl;
-
-            let caption = `╭━━━ ${toSmallCaps('youtube download')} ━━━\n`;
-            caption += `│ 📌 *${video.title}*\n`;
-            caption += `│ 👤 ${video.author.name}\n`;
-            caption += `│ 🕒 ${video.timestamp}\n`;
-            caption += `╰━━━━━━━━━━━━━━━━\n`;
-
-            if (type === 'mp4') {
-                await sock.sendMessage(m.chat, {
-                    video: { url: downloadUrl },
-                    caption: caption.trim()
-                }, { quoted: m });
-            } else {
-                await sock.sendMessage(m.chat, {
-                    audio: { url: downloadUrl },
-                    mimetype: 'audio/mpeg'
-                }, { quoted: m });
-                await sock.sendMessage(m.chat, { text: caption.trim() }, { quoted: m });
-            }
+            await m.react('✅');
+            await showVideoInfo(m, sock, video, url);
 
         } catch (err) {
-            console.error("YTDL error:", err);
-            await m.reply(`❌ Gagal download, bro. Mungkin linknya mati atau server scraper lagi down.\nError: ${err.message}`);
+            console.error("YTDL fetch error:", err);
+            await m.react('❌');
+            await m.reply(toSmallCaps(`❌ Gagal fetch info video, bro.\nError: ${err.message}`));
         }
     }
 };

@@ -9,8 +9,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 export class ModuleLoader {
-    constructor(handler) {
+    constructor(handler, config) {
         this.handler = handler;
+        this.config = config;
         this.modulesPath = path.join(__dirname, "..", "commands");
         this.loadedFiles = new Set();
     }
@@ -87,6 +88,11 @@ export class ModuleLoader {
 
             if (fileName.startsWith("_")) {
                 const mwName = path.basename(fileName, ".js").substring(1);
+                
+                if (this.config.middlewares && this.config.middlewares[mwName] === false) {
+                    return;
+                }
+                
                 if (!this.handler.middlewares.has(mwName)) {
                     this.handler.use(mwName, plugin);
                     this.loadedFiles.add(file);

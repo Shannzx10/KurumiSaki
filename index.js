@@ -38,7 +38,7 @@ console.log("");
 
 const handler = new CommandHandler();
 const store = new MessageStore(config);
-const loader = new ModuleLoader(handler);
+const loader = new ModuleLoader(handler, config);
 const connection = new Connection(config, handler, loader, store);
 
 connection.start().catch(err => {
