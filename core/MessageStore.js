@@ -1,72 +1,106 @@
-import fs from "fs";
+import Database from "better-sqlite3";
 import path from "path";
+import fs from "fs";
 import { Logger } from "./Logger.js";
 
 export class MessageStore {
     constructor(config) {
         this.config = config;
-        this.store = new Map();
-        this.saveCounter = 0;
-        this.storePath = path.join(config.sessionDir, "messages.json");
+        this.databaseDir = config.databaseDir || "database";
+        if (!fs.existsSync(this.databaseDir)) {
+            fs.mkdirSync(this.databaseDir, { recursive: true });
+        }
+        const dbPath = path.join(this.databaseDir, "sqlite.db");
+        this.db = new Database(dbPath);
         
-        if (config.saveMessages) {
-            this.load();
-        }
+        this.db.pragma('journal_mode = WAL');
+
+        this.init();
     }
 
-    load() {
-        try {
-            if (fs.existsSync(this.storePath)) {
-                const data = fs.readFileSync(this.storePath, "utf8");
-                const parsed = JSON.parse(data);
-                this.store = new Map(Object.entries(parsed));
-                Logger.logSuccess(`Loaded ${this.store.size} messages from storage`);
-            }
-        } catch (err) {
-            Logger.logError(`Failed to load messages: ${err.message}`);
-        }
-    }
-
-    save() {
-        try {
-            const dir = path.dirname(this.storePath);
-            if (!fs.existsSync(dir)) {
-                fs.mkdirSync(dir, { recursive: true });
-            }
+    init() {
+        this.db.exec(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id TEXT PRIMARY KEY,
+                remoteJid TEXT,
+                sender TEXT,
+                text TEXT,
+                timestamp INTEGER,
+                fullJson TEXT
+            );
             
-            const data = Object.fromEntries(this.store);
-            fs.writeFileSync(this.storePath, JSON.stringify(data, null, 2));
-        } catch (err) {
-            Logger.logError(`Failed to save messages: ${err.message}`);
-        }
+            CREATE INDEX IF NOT EXISTS idx_remoteJid ON messages(remoteJid);
+            CREATE INDEX IF NOT EXISTS idx_timestamp ON messages(timestamp);
+        `);
     }
 
     add(msgId, data) {
         if (!this.config.saveMessages) return;
-        
-        if (this.store.size >= this.config.maxMessages) {
-            const first = this.store.keys().next().value;
-            this.store.delete(first);
-        }
 
-        this.store.set(msgId, {
-            ...data,
-            timestamp: Date.now()
-        });
-        
-        this.saveCounter++;
+        try {
+            const stmt = this.db.prepare(`
+                INSERT OR IGNORE INTO messages (id, remoteJid, sender, text, timestamp, fullJson)
+                VALUES (?, ?, ?, ?, ?, ?)
+            `);
 
-        if (this.saveCounter % this.config.autoSaveInterval === 0) {
-            this.save();
+            stmt.run(
+                msgId,
+                data.chat,
+                data.from,
+                data.text,
+                Date.now(),
+                JSON.stringify(data)
+            );
+
+            if (Math.random() < 0.01) { 
+                this.cleanup();
+            }
+
+        } catch (err) {
+            Logger.logError(`Failed to save message to DB: ${err.message}`);
         }
     }
 
     get(msgId) {
-        return this.store.get(msgId);
+        try {
+            const row = this.db.prepare('SELECT * FROM messages WHERE id = ?').get(msgId);
+            if (!row) return null;
+
+            return {
+                ...JSON.parse(row.fullJson),
+                timestamp: row.timestamp
+            };
+        } catch (err) {
+            Logger.logError(`Failed to fetch message: ${err.message}`);
+            return null;
+        }
+    }
+
+    getRecent(chatId, limit = 10) {
+        try {
+            const rows = this.db.prepare(`
+                SELECT fullJson FROM messages 
+                WHERE remoteJid = ? 
+                ORDER BY timestamp DESC 
+                LIMIT ?
+            `).all(chatId, limit);
+            
+            return rows.map(r => JSON.parse(r.fullJson));
+        } catch (err) {
+            return [];
+        }
+    }
+
+    cleanup() {
+        const max = this.config.maxMessages || 5000; 
+        this.db.prepare(`
+            DELETE FROM messages WHERE id NOT IN (
+                SELECT id FROM messages ORDER BY timestamp DESC LIMIT ?
+            )
+        `).run(max);
     }
 
     flush() {
-        this.save();
-        Logger.logSuccess("Messages saved to disk");
+        // Biarin
     }
 }

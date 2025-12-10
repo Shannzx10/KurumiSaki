@@ -1,5 +1,21 @@
 ## 📝 Changelog
 
+### [1.0.3] - 2024-12-10
+
+#### 🚀 Core Features
+- Add `SQLiteAuth.js`, `ApiServer.js`
+- Remove `SessionCleaner.js`
+- Adjustment in `config.js` and `Serializer.js`
+- Add module `better-sqlite3`, `express` and, `cors`
+
+### 🎁 New
+Kini KurumiSaki bisa di kontrol lewat aplikasi resmi nya, download aplikasi di bagian release 
+
+### 📢 Tutorial 
+- [Cara Mengkoneksikan KurumiSaki ke aplikasi](https://mega.nz/file/21Ih0DDY#YD4DirUy0Y3QizEveocUFjuW_VP48o-EXZwBQf2BLTc)
+
+---
+
 ### [1.0.2] - 2024-11-26
 
 #### 🚀 Core Features

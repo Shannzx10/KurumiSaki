@@ -3,6 +3,7 @@ import { CommandHandler } from "./core/CommandHandler.js";
 import { MessageStore } from "./core/MessageStore.js";
 import { ModuleLoader } from "./core/ModuleLoader.js";
 import { Connection } from "./core/Connection.js";
+import { ApiServer } from "./core/ApiServer.js";
 import chalk from "chalk";
 
 console.clear();
@@ -39,6 +40,8 @@ console.log("");
 const handler = new CommandHandler();
 const store = new MessageStore(config);
 const loader = new ModuleLoader(handler, config);
+const api = new ApiServer(loader, config);
+api.start();
 const connection = new Connection(config, handler, loader, store);
 
 connection.start().catch(err => {

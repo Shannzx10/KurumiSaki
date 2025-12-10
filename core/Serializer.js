@@ -7,12 +7,22 @@ import config from '../config.js';
 export async function serializeMessage(m, sock, connection) {
     if (!m.message) return m;
 
+    const findValidJid = (obj) => {
+        if (!obj) return null;
+        for (let key in obj) {
+            if (typeof obj[key] === 'string' && obj[key].endsWith('@s.whatsapp.net')) {
+                return obj[key];
+            }
+        }
+        return null;
+    };
+
     m.isGroup = m.key.remoteJid?.endsWith("@g.us");    
-    m.chat = m.isGroup ? m.key.remoteJid : (m.key.remoteJidAlt || m.key.remoteJid);
+    m.chat = m.isGroup ? m.key.remoteJid : findValidJid(m.key);
     m.fromMe = m.key.fromMe;
     
     m.sender = jidNormalizedUser(
-        m.fromMe ? sock.user.id : m.key.participantAlt || m.key.remoteJidAlt
+        m.fromMe ? sock.user.id : (findValidJid(m.key) || m.key.remoteJid)
     );
     m.isOwner = config.owners.some(o => m.sender.includes(o));
 

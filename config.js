@@ -1,12 +1,14 @@
 export default {
-    botName: "KurumiSaki",
+    botName: "KurumiSaki V1.0.3",
     version: "1.0.2",
     owner: "Shannz",
-    sessionDir: "session",
+    databaseDir: "database",
     owners: ["6288991677437"],
-    prefix: ["!", ".", "/"],
+    prefix: ["!"],
+    port: 10019,
+    secretKey: 'testing',
     caseSensitive: false,
-    geminiApikey: "GEMINI_APIKEY",
+    geminiApikey: "AIzaSyCu2GgaOgMq0cAwfu3IFa7fD4SuF2Ujj8M",
     mode: "public",
     
     middlewares: {
@@ -30,10 +32,6 @@ export default {
         ttl: 300000,
         autoCleanup: true,
         cleanupInterval: 600000
-    },
-    sessionCleaner: {
-        enabled: true,
-        autoCleanInterval: 3600000
     },
     
     rateLimiter: {

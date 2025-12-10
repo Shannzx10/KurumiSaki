@@ -18,15 +18,11 @@ export class ModuleLoader {
 
     scanFolder(dir, base) {
         let files = [];
-        
         try {
             if (!fs.existsSync(dir)) return files;
-
             const items = fs.readdirSync(dir, { withFileTypes: true });
-
             for (const item of items) {
                 const fullPath = path.join(dir, item.name);
-                
                 if (item.isDirectory()) {
                     files = files.concat(this.scanFolder(fullPath, base));
                 } else if (item.isFile() && item.name.endsWith(".js")) {
@@ -37,7 +33,6 @@ export class ModuleLoader {
         } catch (err) {
             console.error(chalk.red("❌ Scan error:"), err.message);
         }
-        
         return files;
     }
 
@@ -67,15 +62,10 @@ export class ModuleLoader {
 
     async loadFile(file) {
         try {
-            if (this.loadedFiles.has(file)) {
-                return;
-            }
+            if (this.loadedFiles.has(file)) return;
 
             const filePath = path.join(this.modulesPath, file);
-
-            if (!fs.existsSync(filePath)) {
-                return;
-            }
+            if (!fs.existsSync(filePath)) return;
 
             const fileUrl = `file://${filePath}?t=${Date.now()}`;
             const module = await import(fileUrl);
@@ -88,10 +78,7 @@ export class ModuleLoader {
 
             if (fileName.startsWith("_")) {
                 const mwName = path.basename(fileName, ".js").substring(1);
-                
-                if (this.config.middlewares && this.config.middlewares[mwName] === false) {
-                    return;
-                }
+                if (this.config.middlewares && this.config.middlewares[mwName] === false) return;
                 
                 if (!this.handler.middlewares.has(mwName)) {
                     this.handler.use(mwName, plugin);
@@ -114,28 +101,42 @@ export class ModuleLoader {
         }
     }
 
-    async reload(file) {
+    async unloadFile(file) {
         try {
-            this.loadedFiles.delete(file);
-            
             const filePath = path.join(this.modulesPath, file);
-            const fileName = path.basename(file);
-            const plugin = await import(`file://${filePath}?t=${Date.now()}`);
-            
-            if (!plugin.default) return false;
 
-            if (fileName.startsWith("_")) {
-                const mwName = path.basename(fileName, ".js").substring(1);
-                this.handler.middlewares.delete(mwName);
-            } else if (plugin.default.name) {
-                this.handler.commands.delete(plugin.default.name.toLowerCase());
-                if (plugin.default.aliases) {
-                    plugin.default.aliases.forEach(alias => {
-                        this.handler.aliases.delete(alias.toLowerCase());
-                    });
+            if (fs.existsSync(filePath)) {
+                const plugin = await import(`file://${filePath}?t=${Date.now()}`);
+                const fileName = path.basename(file);
+
+                if (plugin.default) {
+                    if (fileName.startsWith("_")) {
+                        const mwName = path.basename(fileName, ".js").substring(1);
+                        this.handler.middlewares.delete(mwName);
+                    } else if (plugin.default.name) {
+                        const cmdName = plugin.default.name.toLowerCase();
+                        this.handler.commands.delete(cmdName);
+                        // Hapus aliases juga
+                        if (plugin.default.aliases) {
+                            plugin.default.aliases.forEach(alias => {
+                                this.handler.aliases.delete(alias.toLowerCase());
+                            });
+                        }
+                    }
                 }
             }
 
+            this.loadedFiles.delete(file);
+            return true;
+        } catch (err) {
+            Logger.logError(`Unload failed: ${err.message}`);
+            return false;
+        }
+    }
+
+    async reload(file) {
+        try {
+            await this.unloadFile(file);
             await this.loadFile(file);
             return true;
         } catch (err) {
