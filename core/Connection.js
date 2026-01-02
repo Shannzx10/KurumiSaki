@@ -15,7 +15,7 @@ import { GroupCache } from "./GroupCache.js";
 import { RateLimiter } from "./RateLimiter.js";
 import { MemoryMonitor } from "./MemoryMonitor.js";
 import { QueueManager } from "./QueueManager.js";
-import { useSQLiteAuthState } from "./SQLiteAuth.js";
+import { useTursoAuthState } from "./TursoAuth.js";
 
 export class Connection {
     constructor(config, handler, loader, store) {
@@ -79,25 +79,34 @@ export class Connection {
                 await this.loader.load();
             }
 
-            const databaseDir = this.config.databaseDir || "database";
-
-            if (!fs.existsSync(databaseDir)) {
-                fs.mkdirSync(databaseDir, { recursive: true });
+            let authState, saveCreds;
+            if (this.config.turso?.enabled) {
+                Logger.logInfo("Using Turso Cloud Database for Session");
+                const auth = await useTursoAuthState(this.config);
+                authState = auth.state;
+                saveCreds = auth.saveCreds;
+            } else {
+                const databaseDir = this.config.databaseDir || "database";
+                if (!fs.existsSync(databaseDir)) {
+                    fs.mkdirSync(databaseDir, { recursive: true });
+                }
+                const { useSQLiteAuthState } = await import("./SQLiteAuth.js");
+                const auth = await useSQLiteAuthState(databaseDir);
+                authState = auth.state;
+                saveCreds = auth.saveCreds;
             }
-
-            const { state, saveCreds } = await useSQLiteAuthState(databaseDir);
 
             const sock = makeWASocket({
                 auth: {
-                    creds: state.creds,
+                    creds: authState.creds,
                     keys: makeCacheableSignalKeyStore(
-                        state.keys,
+                        authState.keys,
                         Pino({ level: "silent" })
                     )
                 },
                 browser: Browsers.ubuntu("Chrome"),
                 logger: Pino({ level: "silent" }),
-                printQRInTerminal: false,
+                printQRInTerminal: false, // Kita pakai Pairing Code
                 connectTimeoutMs: 60000,
                 defaultQueryTimeoutMs: 60000,
                 keepAliveIntervalMs: 30000
@@ -108,13 +117,25 @@ export class Connection {
             if (!sock.authState.creds.registered) {
                 setTimeout(async () => {
                     try {
-                        const number = await this.askNumber();
-                        const code = await sock.requestPairingCode(number);
-                        console.log(chalk.green(`\n✅ Code: ${chalk.bold(code)}\n`));
+                        let number = this.config.pairingNumber;
+
+                        if (!number) {
+                            Logger.logWarning("Pairing number not found in config/env. Switching to interactive mode...");
+                            number = await this.askNumber();
+                        } else {
+                            Logger.logInfo(`Using pairing number from config: ${number}`);
+                        }
+
+                        if (number) {
+                            const code = await sock.requestPairingCode(number);
+                            console.log(chalk.green(`\n✅ Code: ${chalk.bold(code)}\n`));
+                        } else {
+                            Logger.logError("No pairing number provided!");
+                        }
                     } catch (err) {
                         console.error(chalk.red("Pairing failed:"), err);
                     }
-                }, 3000);
+                }, 4000);
             }
 
             sock.ev.on("creds.update", saveCreds);
@@ -187,6 +208,7 @@ export class Connection {
             this.handleExit();
         } catch (error) {
             Logger.logError(`Start error: ${error.message}`);
+            console.error(error); 
             setTimeout(() => this.start(), 5000);
         }
     }
@@ -223,11 +245,13 @@ export class Connection {
             }
         }
 
+        // --- STORE ASYNC HANDLER ---
         this.store.add(m.key.id, {
             from: m.sender,
             chat: m.chat,
             text: m.text
         });
+        // ---------------------------
 
         if (this.config.mode === "self") {
             const isOwner = this.config.owners.some(o => m.sender.includes(o));

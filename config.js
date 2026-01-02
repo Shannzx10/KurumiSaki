@@ -1,16 +1,29 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 export default {
-    botName: "KurumiSaki V1.0.3",
-    version: "1.0.2",
+    botName: "KurumiSaki",
+    version: "1.0.4",
     owner: "Shannz",
-    databaseDir: "database",
     owners: ["6288991677437"],
-    prefix: ["!"],
-    port: 10019,
-    secretKey: 'testing',
-    caseSensitive: false,
-    geminiApikey: "AIzaSyCu2GgaOgMq0cAwfu3IFa7fD4SuF2Ujj8M",
-    mode: "public",
+    pairingNumber: "",
     
+    port: process.env.PORT,
+    secretKey: process.env.SECRET_KEY,
+
+    databaseDir: "database",
+    prefix: ["@"],
+    caseSensitive: false,
+    
+    geminiApikey: process.env.GEMINI_APIKEY,
+    mode: "public",
+
+    turso: {
+        enabled: true,
+        url: process.env.TURSO_URL,
+        authToken: process.env.TURSO_AUTH_TOKEN
+    },
+
     middlewares: {
         antilink: true,
         antitoxic: false

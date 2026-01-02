@@ -1,5 +1,23 @@
 ## 📝 Changelog
 
+### [1.0.4] - 2024-01-01 (Cloud Native Update)
+
+Update besar untuk stabilitas deployment di Cloud (Hugging Face, Railway, Render) dan Database Terdistribusi.
+
+#### ☁️ Cloud & Deployment
+- **Turso Integration:** Menambahkan support penuh untuk Database Turso (`@libsql/client`).
+- **Auto-Pairing Mechanism:** Bot sekarang bisa membaca `PAIRING_NUMBER` dari Environment Variable. Tidak perlu input manual di console saat deploy di Cloud.
+- **Docker Support:** Menambahkan `Dockerfile` yang sudah dioptimasi dengan `ffmpeg` dan dependencies pendukung.
+- **Hugging Face Compatibility:** Integrasi otomatis port `7860` agar bot tetap hidup di Free Tier HF Spaces.
+
+#### 🔧 Core Updates
+- **ApiServer Integration:** Mengintegrasikan `ApiServer.js` langsung ke `index.js` untuk handling port dan monitoring, menggantikan manual HTTP server.
+- **Hybrid Auth:** Logika `Connection.js` diperbarui untuk memilih antara `SQLiteAuth` (Lokal) atau `TursoAuth` (Cloud) secara otomatis.
+- **Env Configuration:** Migrasi kredensial sensitif (API Key, Token DB) ke file `.env`.
+- **Async Store:** `MessageStore` di-refactor agar mendukung operasi *asynchronous* untuk database cloud.
+
+---
+
 ### [1.0.3] - 2024-12-10
 
 #### 🚀 Core Features
