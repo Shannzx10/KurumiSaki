@@ -47,7 +47,7 @@ function getVideoId(url) {
     }
 }
 
-async function showVideoInfo(m, sock, video, url) {
+async function showVideoInfo(m, sock, video, url, prefix = "@") {
     const chatId = m.chat;
 
     videoCache.set(chatId, { video, url });
@@ -63,8 +63,8 @@ async function showVideoInfo(m, sock, video, url) {
     caption += toSmallCaps('pilih format download:');
 
     const buttons = [
-        { id: '.ytdl _mp4', text: 'Video (MP4)' },
-        { id: '.ytdl _mp3', text: 'Audio (MP3)' }
+        { id: `${prefix}ytdl _mp4`, text: 'Video (MP4)' },
+        { id: `${prefix}ytdl _mp3`, text: 'Audio (MP3)' }
     ];
 
     const payload = {
@@ -132,14 +132,15 @@ export default {
     usage: 'ytdl <youtube_url>',
     category: 'downloader',
     
-    async execute({ m, args, sock }) {
+    async execute({ m, args, sock, config }) {
+        const prefix = config?.prefix?.[0] || "@";
         if (args[0] === '_mp4' || args[0] === '_mp3') {
             const format = args[0].replace('_', '');
             return await downloadVideo(m, sock, format);
         }
 
         if (args.length < 1) {
-            return m.reply(`${toSmallCaps('❌ Format salah, bro.\nContoh: .ytdl')} https://youtube.com/watch?v=...`);
+            return m.reply(`${toSmallCaps('❌ Format salah, bro.\nContoh: ')}${prefix}ytdl https://youtube.com/watch?v=...`);
         }
         
         const url = args[0];
@@ -159,7 +160,7 @@ export default {
             }
 
             await m.react('✅');
-            await showVideoInfo(m, sock, video, url);
+            await showVideoInfo(m, sock, video, url, prefix);
 
         } catch (err) {
             console.error("YTDL fetch error:", err);

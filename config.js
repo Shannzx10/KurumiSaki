@@ -5,7 +5,7 @@ export default {
     botName: "KurumiSaki",
     version: "1.0.4",
     owner: "Shannz",
-    owners: ["6288991677437"],
+    owners: ["6282142770930"],
     pairingNumber: "",
     
     port: process.env.PORT,
@@ -19,14 +19,14 @@ export default {
     mode: "public",
 
     turso: {
-        enabled: true,
+        enabled: false,
         url: process.env.TURSO_URL,
         authToken: process.env.TURSO_AUTH_TOKEN
     },
 
     middlewares: {
         antilink: true,
-        antitoxic: false
+        antitoxic: true
     },
     
     antiSpam: {

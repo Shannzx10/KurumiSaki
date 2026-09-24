@@ -2,7 +2,11 @@ import chalk from "chalk";
 
 export class Logger {
     static logMessage(m) {
-        if (['protocolMessage', 'senderKeyDistributionMessage'].includes(m.type)) return;
+        try {
+            if (!m || !m.message) return;
+            if (['protocolMessage', 'senderKeyDistributionMessage'].includes(m.type)) return;
+            // Guard: pesan status/broadcast/newsletter bisa tidak punya chat/sender
+            if (!m.chat || !m.sender) return;
         
         const typeEmoji = {
             conversation: '💬',
@@ -19,8 +23,8 @@ export class Logger {
         };
         
         const emoji = typeEmoji[m.type] || '📨';
-        const sender = m.sender.split("@")[0] || 'Unknown';
-        const chat = m.chat.split("@")[0];
+        const sender = String(m.sender || 'Unknown').split("@")[0] || 'Unknown';
+        const chat = String(m.chat || 'Unknown').split("@")[0];
 
         const preview = m.text 
             ? (m.text.length > 60 ? m.text.substring(0, 60) + '...' : m.text)
@@ -43,6 +47,10 @@ export class Logger {
         console.log(chalk.cyan('│') + ' 👤 ' + chalk.gray('From    : ') + chalk.green(senderDisplay));
         console.log(chalk.cyan('│') + ' 📝 ' + chalk.gray('Message : ') + chalk.white(preview));
         console.log(chalk.cyan('╰─────────────────────────────────────────────') + '\n');
+        } catch (e) {
+            // Logging tidak boleh membunuh bot
+            console.error('Logger error:', e.message);
+        }
     }
 
     static logSuccess(message) {

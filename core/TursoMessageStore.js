@@ -95,6 +95,68 @@ export class TursoMessageStore {
         }
     }
 
+    async count() {
+        try {
+            const result = await this.client.execute('SELECT COUNT(*) AS c FROM messages');
+            return Number(result.rows[0]?.c) || 0;
+        } catch (err) {
+            return 0;
+        }
+    }
+
+    async search(query, limit = 10) {
+        try {
+            const result = await this.client.execute({
+                sql: `SELECT * FROM messages
+                      WHERE text LIKE ?
+                      ORDER BY timestamp DESC
+                      LIMIT ?`,
+                args: [`%${query}%`, limit]
+            });
+            return result.rows.map(row => {
+                try {
+                    return { id: row.id, ...JSON.parse(row.fullJson), timestamp: Number(row.timestamp) };
+                } catch {
+                    return { id: row.id, from: row.sender, chat: row.remoteJid, text: row.text, timestamp: Number(row.timestamp) };
+                }
+            });
+        } catch (err) {
+            Logger.logError(`Failed to search messages: ${err.message}`);
+            return [];
+        }
+    }
+
+    async clear() {
+        try {
+            const before = await this.count();
+            await this.client.execute('DELETE FROM messages');
+            return before;
+        } catch (err) {
+            Logger.logError(`Failed to clear messages: ${err.message}`);
+            return 0;
+        }
+    }
+
+    // Resolve JID @lid -> nomor asli via tabel session (lid-mapping-<lid>_reverse).
+    // Return digit PN (mis. "628...") atau null kalau mapping belum ada.
+    async resolveLid(lid) {
+        try {
+            const user = String(lid || "").split("@")[0].split(":")[0].replace(/\D/g, "");
+            if (!user) return null;
+            const result = await this.client.execute({
+                sql: 'SELECT value FROM session WHERE id = ?',
+                args: [`lid-mapping-${user}_reverse`]
+            });
+            if (result.rows.length === 0) return null;
+            let pn = result.rows[0].value;
+            try { pn = JSON.parse(pn); } catch { /* value plain */ }
+            pn = String(pn || "").replace(/\D/g, "");
+            return pn || null;
+        } catch (err) {
+            return null;
+        }
+    }
+
     async cleanup() {
         const max = this.config.maxMessages || 5000;
         try {

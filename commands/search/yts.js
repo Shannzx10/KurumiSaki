@@ -4,7 +4,7 @@ import { sendButtons } from '../../utility/Button.js';
 
 const searchCache = new Map();
 
-async function sendPagedResults(m, sock, results, page = 0) {
+async function sendPagedResults(m, sock, results, page = 0, prefix = "@") {
     const resultsPerPage = 5;
     const startIndex = page * resultsPerPage;
     const endIndex = startIndex + resultsPerPage;
@@ -29,10 +29,10 @@ async function sendPagedResults(m, sock, results, page = 0) {
 
     const buttons = [];
     if (page > 0) {
-        buttons.push({ id: `.yts _prev`, text: 'Previous' });
+        buttons.push({ id: `${prefix}yts _prev`, text: 'Previous' });
     }
     if (endIndex < results.length) {
-        buttons.push({ id: `.yts _next`, text: 'Next' });
+        buttons.push({ id: `${prefix}yts _next`, text: 'Next' });
     }
 
     const firstVideoThumb = pagedResults[0].thumbnail || pagedResults[0].image;
@@ -55,7 +55,8 @@ export default {
     usage: 'yts <query>',
     category: 'tools',
     
-    async execute({ m, args, sock }) {
+    async execute({ m, args, sock, config }) {
+        const prefix = config?.prefix?.[0] || "@";
         const query = args.join(' ');
         const chatId = m.chat;
 
@@ -72,11 +73,11 @@ export default {
             session.page = newPage;
             searchCache.set(chatId, session);
 
-            return await sendPagedResults(m, sock, session.results, newPage);
+            return await sendPagedResults(m, sock, session.results, newPage, prefix);
         }
 
         if (!query) {
-            return m.reply(toSmallCaps('❌ Query-nya mana bro? Contoh: .yts kuromi tokisaki'));
+            return m.reply(toSmallCaps(`❌ Query-nya mana bro? Contoh: ${prefix}yts kuromi tokisaki`));
         }
 
         try {
@@ -92,7 +93,7 @@ export default {
             searchCache.set(chatId, { results: videos, page: 0 });
             
             await m.react('✅');
-            await sendPagedResults(m, sock, videos, 0);
+            await sendPagedResults(m, sock, videos, 0, prefix);
 
         } catch (err) {
             console.error("YTS error:", err);

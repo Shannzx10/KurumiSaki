@@ -550,19 +550,13 @@ export async function sendInteractiveMessage(sock, jid, content, options = {}) {
   const normalizedContent = normalizeMessageContent(fullMsg.message);
   const buttonType = getButtonType(normalizedContent);
   let additionalNodes = [...(options.additionalNodes || [])];
-  if (buttonType) {
+    if (buttonType) {
     const buttonsNode = getButtonArgs(normalizedContent);
     const isPrivate = !isJidGroup(jid);
     additionalNodes.push(buttonsNode);
     if (isPrivate && options.useAI === true) {
       additionalNodes.push({ tag: 'bot', attrs: { biz_bot: '1' } });
     }
-    console.log('Interactive send: ', {
-      type: buttonType,
-      nodes: additionalNodes.map(n => ({ tag: n.tag, attrs: n.attrs })),
-      private: !isJidGroup(jid),
-      useAI: options.useAI === true
-    });
   }
 
   await relayMessage(jid, fullMsg.message, {

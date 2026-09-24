@@ -121,7 +121,7 @@ export default {
                 rows: uniqueCmds.map(cmd => ({
                     title: `${prefix}${cmd.name}`,
                     description: cmd.desc || 'No description',
-                    id: `.menu _cmd_${cmd.name}`
+                    id: `${prefix}menu _cmd_${cmd.name}`
                 }))
             };
         });

@@ -76,8 +76,7 @@ export class MessageStore {
         }
     }
 
-    getRecent(chatId, limit = 10) {
-        try {
+    getRecent(chatId, limit = 10) {        try {
             const rows = this.db.prepare(`
                 SELECT fullJson FROM messages 
                 WHERE remoteJid = ? 
@@ -88,6 +87,63 @@ export class MessageStore {
             return rows.map(r => JSON.parse(r.fullJson));
         } catch (err) {
             return [];
+        }
+    }
+
+    count() {
+        try {
+            const row = this.db.prepare('SELECT COUNT(*) AS c FROM messages').get();
+            return row?.c || 0;
+        } catch (err) {
+            return 0;
+        }
+    }
+
+    search(query, limit = 10) {
+        try {
+            const rows = this.db.prepare(`
+                SELECT * FROM messages
+                WHERE text LIKE ?
+                ORDER BY timestamp DESC
+                LIMIT ?
+            `).all(`%${query}%`, limit);
+            return rows.map(r => {
+                try {
+                    return { id: r.id, ...JSON.parse(r.fullJson), timestamp: r.timestamp };
+                } catch {
+                    return { id: r.id, from: r.sender, chat: r.remoteJid, text: r.text, timestamp: r.timestamp };
+                }
+            });
+        } catch (err) {
+            return [];
+        }
+    }
+
+    clear() {
+        try {
+            const info = this.db.prepare('DELETE FROM messages').run();
+            return info.changes || 0;
+        } catch (err) {
+            Logger.logError(`Failed to clear messages: ${err.message}`);
+            return 0;
+        }
+    }
+
+    // Resolve JID @lid -> nomor asli via tabel session (lid-mapping-<lid>_reverse).
+    // Return digit PN (mis. "628...") atau null kalau mapping belum ada.
+    resolveLid(lid) {
+        try {
+            const user = String(lid || "").split("@")[0].split(":")[0].replace(/\D/g, "");
+            if (!user) return null;
+            const row = this.db.prepare('SELECT value FROM session WHERE id = ?')
+                .get(`lid-mapping-${user}_reverse`);
+            if (!row) return null;
+            let pn = row.value;
+            try { pn = JSON.parse(row.value); } catch { /* value plain */ }
+            pn = String(pn || "").replace(/\D/g, "");
+            return pn || null;
+        } catch (err) {
+            return null;
         }
     }
 

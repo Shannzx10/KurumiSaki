@@ -230,11 +230,15 @@ export class Connection {
     }
 
     async handleMessage(sock, raw) {
-        if (!raw.message) return;
+        try {
+            if (!raw?.message) return;
 
-        const m = await serializeMessage(raw, sock, this);
-        this.handler.updateStats("message");
-        Logger.logMessage(m);
+            const m = await serializeMessage(raw, sock, this);
+            // Abaikan pesan sistem tanpa chat/sender (status, broadcast, newsletter, receipt)
+            // agar tidak crash di Logger / handler.
+            if (!m || !m.chat || !m.sender) return;
+            this.handler.updateStats("message");
+            Logger.logMessage(m);
 
         if (this.rateLimiter) {
             if (this.rateLimiter.isUserBanned(m.sender)) return;
@@ -253,12 +257,24 @@ export class Connection {
         });
         // ---------------------------
 
+        const digits = (s) => String(s || "").replace(/\D/g, "");
+        const senderDigits = digits(m.sender);
+        const checkOwner = () => {
+            if (m.fromMe === true || m.isOwner === true) return true;
+            return senderDigits
+                ? this.config.owners.some(o => {
+                    const od = digits(o);
+                    return od && (senderDigits.endsWith(od) || od.endsWith(senderDigits));
+                })
+                : false;
+        };
+
         if (this.config.mode === "self") {
-            const isOwner = this.config.owners.some(o => m.sender.includes(o));
+            const isOwner = checkOwner();
             if (!isOwner && m.text && m.text.startsWith(this.config.prefix[0])) return;
         }
 
-        const isOwner = this.config.owners.some(o => m.sender.includes(o));
+        const isOwner = checkOwner();
 
         if (m.text && await this.handleEval(sock, m, isOwner)) return;
         if (m.text && await this.handleExec(sock, m, isOwner)) return;
@@ -277,7 +293,7 @@ export class Connection {
 
         if (!(await this.handler.runMiddlewares(ctx))) return;
 
-        const prefix = this.config.prefix.find(p => m.text.startsWith(p));
+        const prefix = m.text ? this.config.prefix.find(p => m.text.startsWith(p)) : null;
         if (!prefix) return;
 
         const args = m.text.slice(prefix.length).trim().split(/\s+/);
@@ -287,7 +303,10 @@ export class Connection {
         const cmd = this.handler.get(cmdName);
         if (!cmd) return;
 
-        if (cmd.ownerOnly && !isOwner) return await m.reply("⛔ Owner only!");
+        if (cmd.ownerOnly && !isOwner) {
+            console.log(`⛔ Owner check gagal: sender=${m.sender} fromMe=${m.fromMe} owners=${this.config.owners.join(",")}`);
+            return await m.reply("⛔ Owner only!");
+        }
         if (cmd.groupOnly && !m.isGroup) return await m.reply("⛔ Group only!");
         if (cmd.privateOnly && m.isGroup) return await m.reply("⛔ Private only!");
         if (cmd.adminOnly && !m.isAdmin) return await m.reply("⛔ Admin only!");
@@ -317,6 +336,9 @@ export class Connection {
             this.queueManager.add(m.chat, async () => await this.handler.execute(cmdName, context));
         } else {
             await this.handler.execute(cmdName, context);
+        }
+        } catch (err) {
+            console.error("handleMessage error:", err.message);
         }
     }
 

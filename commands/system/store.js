@@ -10,6 +10,14 @@ export default {
     ownerOnly: true,
     
     async execute({ args, config, reply, store }) {
+        // Tampilkan nomor asli kalau pengirim berupa @lid (resolve via session/lid-mapping).
+        const fmtSender = async (jid) => {
+            if (jid && jid.includes("@lid") && typeof store.resolveLid === "function") {
+                const pn = await store.resolveLid(jid);
+                if (pn) return `${pn}@s.whatsapp.net`;
+            }
+            return jid;
+        };
         if (args.length === 0) {
             let msg = `╭━━━ ${toSmallCaps('message store manager')} ━━━\n`;
             msg += `│\n`;
@@ -35,20 +43,21 @@ export default {
         const flag = args[0].toLowerCase();
 
         if (flag === "--status" || flag === "-s") {
-            const size = store.store.size;
+            const size = await store.count();
             const maxMessages = config.maxMessages;
             const saveEnabled = config.saveMessages;
-            const autoSaveInterval = config.autoSaveInterval;
-            const saveCounter = store.saveCounter;
-            const percentage = ((size / maxMessages) * 100).toFixed(1);
+            const backend = config.turso?.enabled ? "Turso (cloud)" : "SQLite (local)";
+            const dbPath = config.turso?.enabled
+                ? (config.turso.url || "-")
+                : `${config.databaseDir || "database"}/sqlite.db`;
+            const percentage = maxMessages ? ((size / maxMessages) * 100).toFixed(1) : "0.0";
             
             let msg = `╭━━━ ${toSmallCaps('message store stats')} ━━━\n`;
             msg += `│\n`;
             msg += `│ ${toSmallCaps('status')}: ${saveEnabled ? '✅ Enabled' : '❌ Disabled'}\n`;
+            msg += `│ ${toSmallCaps('backend')}: ${backend}\n`;
             msg += `│ ${toSmallCaps('stored')}: ${size}/${maxMessages} (*${percentage}%*)\n`;
-            msg += `│ ${toSmallCaps('save counter')}: ${saveCounter}\n`;
-            msg += `│ ${toSmallCaps('auto-save')}: ${toSmallCaps('every')} ${autoSaveInterval} ${toSmallCaps('messages')}\n`;
-            msg += `│ ${toSmallCaps('path')}: ${store.storePath}\n`;
+            msg += `│ ${toSmallCaps('path')}: ${dbPath}\n`;
             msg += `│\n`;
             msg += `│ 💡 ${toSmallCaps('configure in config.js')}\n`;
             msg += `╰━━━━━━━━━━━━━━━━`;
@@ -61,13 +70,13 @@ export default {
                 return await reply(`⚠️ ${toSmallCaps('message saving is disabled in config')}!`);
             }
 
-            const size = store.store.size;
-            store.save();
+            // SQLite/Turso auto-persist setiap write, jadi --save tinggal validasi + lapor.
+            const size = await store.count();
             
             let msg = `╭━━━ ${toSmallCaps('manual save complete')} ━━━\n`;
             msg += `│\n`;
             msg += `│ ✅ ${toSmallCaps('saved')}: ${size} ${toSmallCaps('messages')}\n`;
-            msg += `│ 📁 ${toSmallCaps('location')}: session/messages.json\n`;
+            msg += `│ 💾 ${toSmallCaps('backend auto-persists, nothing pending')}\n`;
             msg += `│ ⏱️ ${toSmallCaps('timestamp')}: ${new Date().toLocaleString('id-ID')}\n`;
             msg += `╰━━━━━━━━━━━━━━━━`;
             
@@ -75,23 +84,18 @@ export default {
         }
 
         if (flag === "--clear" || flag === "-c") {
-            const sizeBefore = store.store.size;
-            
+            const sizeBefore = await store.count();
+
             if (sizeBefore === 0) {
                 return await reply(`ℹ️ ${toSmallCaps('store is already empty')}!`);
             }
 
-            store.store.clear();
-            store.saveCounter = 0;
-            store.save();
+            await store.clear();
 
             let msg = `╭━━━ ${toSmallCaps('store cleared')} ━━━\n`;
             msg += `│\n`;
             msg += `│ 🗑️ ${toSmallCaps('removed')}: ${sizeBefore} ${toSmallCaps('messages')}\n`;
-            msg += `│ 💾 ${toSmallCaps('current')}: ${store.store.size} ${toSmallCaps('messages')}\n`;
-            msg += `│ 🔄 ${toSmallCaps('counter reset to')} 0\n`;
-            msg += `│\n`;
-            msg += `│ ✅ ${toSmallCaps('changes saved to disk')}\n`;
+            msg += `│ 💾 ${toSmallCaps('current')}: ${await store.count()} ${toSmallCaps('messages')}\n`;
             msg += `╰━━━━━━━━━━━━━━━━`;
 
             return await reply(msg);
@@ -107,19 +111,7 @@ export default {
             }
 
             const query = args.slice(1).join(" ").toLowerCase();
-            const results = [];
-
-            for (const [msgId, data] of store.store.entries()) {
-                if (data.text && data.text.toLowerCase().includes(query)) {
-                    results.push({
-                        id: msgId,
-                        from: data.from,
-                        text: data.text.substring(0, 50) + (data.text.length > 50 ? "..." : ""),
-                        timestamp: data.timestamp
-                    });
-                }
-                if (results.length >= 10) break;
-            }
+            const results = await store.search(query, 10);
 
             if (results.length === 0) {
                 return await reply(`❌ ${toSmallCaps('no messages found with')}: "${query}"`);
@@ -130,14 +122,22 @@ export default {
             msg += `│ ${toSmallCaps('query')}: "${query}"\n`;
             msg += `│\n`;
 
-            results.forEach((r, i) => {
+            for (let i = 0; i < results.length; i++) {
+                const r = results[i];
                 const date = new Date(r.timestamp).toLocaleString('id-ID');
-                msg += `│ ${i + 1}. ${r.from}\n`;
-                msg += `│    ${r.text}\n`;
+                const preview = r.text
+                    ? (r.text.length > 50 ? r.text.substring(0, 50) + "..." : r.text)
+                    : "";
+                const from = await fmtSender(r.from);
+                msg += `│ ${i + 1}. ${from}\n`;
+                msg += `│    ${preview}\n`;
+                msg += `│    🆔 ${r.id}\n`;
                 msg += `│    📅 ${date}\n`;
                 if (i < results.length - 1) msg += `│\n`;
-            });
+            }
 
+            msg += `│\n`;
+            msg += `│ 💡 ${toSmallCaps('get detail')}: store --get <id>\n`;
             msg += `╰━━━━━━━━━━━━━━━━`;
             return await reply(msg);
         }
@@ -152,7 +152,7 @@ export default {
             }
 
             const msgId = args[1];
-            const data = store.get(msgId);
+            const data = await store.get(msgId);
 
             if (!data) {
                 return await reply(`❌ ${toSmallCaps('message not found')}: ${msgId}`);
@@ -163,7 +163,7 @@ export default {
             let msg = `╭━━━ ${toSmallCaps('message details')} ━━━\n`;
             msg += `│\n`;
             msg += `│ 🆔 ${toSmallCaps('id')}: ${msgId}\n`;
-            msg += `│ 👤 ${toSmallCaps('from')}: ${data.from}\n`;
+            msg += `│ 👤 ${toSmallCaps('from')}: ${await fmtSender(data.from)}\n`;
             msg += `│ 💬 ${toSmallCaps('chat')}: ${data.chat}\n`;
             msg += `│ 📅 ${toSmallCaps('time')}: ${date}\n`;
             msg += `│\n`;
