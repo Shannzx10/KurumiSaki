@@ -17,20 +17,27 @@ export async function serializeMessage(m, sock, connection) {
         return null;
     };
 
-    // NOTE: WA baru sering pakai @lid (privacy) / @broadcast / newsletter,
-    // jadi jangan hanya mengandalkan @s.whatsapp.net agar m.chat tidak null.
-    const remoteJid = m.key?.remoteJid || m.key?.remoteJidAlt || null;
+    // NOTE: WA baru (addressingMode 'lid') menaruh JID samaran @lid di
+    // remoteJid/participant, sedangkan nomor asli (@s.whatsapp.net) ada di
+    // remoteJidAlt/participantAlt. Selalu utamakan yang PN agar chat/sender
+    // konsisten (reply, store, owner check).
+    const preferPn = (primary, alt) => {
+        if (alt && typeof alt === 'string' && alt.endsWith('@s.whatsapp.net')) return alt;
+        return primary || alt || null;
+    };
+    const remoteJid = preferPn(m.key?.remoteJid, m.key?.remoteJidAlt);
     m.isGroup = remoteJid?.endsWith("@g.us") || false;
-    m.chat = remoteJid || findValidJid(m.key) || m.key?.participant || "";
+    m.chat = remoteJid || findValidJid(m.key) || preferPn(m.key?.participant, m.key?.participantAlt) || "";
     m.fromMe = m.key.fromMe;
 
+    const participantPn = preferPn(m.key?.participant, m.key?.participantAlt);
     let senderRaw;
     if (m.fromMe) {
         // Pesan dari nomor bot sendiri -> selalu pakai ID bot, jangan ditimpa participant grup
-        senderRaw = sock?.user?.id || m.key?.participant || remoteJid || "";
-    } else if (m.isGroup && m.key?.participant) {
+        senderRaw = sock?.user?.id || participantPn || remoteJid || "";
+    } else if (m.isGroup && participantPn) {
         // group: participant adalah pengirim asli, private: remoteJid
-        senderRaw = m.key.participant;
+        senderRaw = participantPn;
     } else {
         senderRaw = findValidJid(m.key) || remoteJid || "";
     }
